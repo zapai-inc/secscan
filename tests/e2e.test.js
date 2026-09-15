@@ -5,6 +5,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync, spawnSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
+
+// gitleaks applies an entropy floor, so filler like 'a'.repeat(24) is not a token; this is.
+const rand = (n) => randomBytes(n * 2).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, n);
 import { resolveTool } from '../src/tools.js';
 import { buildBaseline, applyBaseline, resolvedSince } from '../src/baseline.js';
 import { finalize } from '../src/findings.js';
@@ -83,7 +87,7 @@ test('cli: init writes config + baseline in a temp git repo, then a rescan is cl
   assert.equal(j.counts.new, 0, 'everything is baselined');
   // a newly staged secret is blocked in hook mode
   // secscan-ignore: slack-bot-token synthetic value assembled at runtime for the hook test
-  fs.writeFileSync(path.join(dir, 'leak.js'), "export const T = 'xoxb-123456789012-1234567890123-" + 'a'.repeat(24) + "';\n");
+  fs.writeFileSync(path.join(dir, 'leak.js'), "export const T = 'xoxb-123456789012-1234567890123-" + rand(24) + "';\n");
   execFileSync('git', ['add', 'leak.js'], { cwd: dir });
   const hookRun = secscan(['scan', '--hook', '--quiet'], dir);
   assert.equal(hookRun.status, 1, 'hook mode fails on a new secret');
@@ -92,7 +96,8 @@ test('cli: init writes config + baseline in a temp git repo, then a rescan is cl
   execFileSync('git', ['reset', '-q', 'leak.js'], { cwd: dir });
   fs.rmSync(path.join(dir, 'leak.js'));
   fs.writeFileSync(path.join(dir, '.gitignore'), '.env\n');
-  fs.writeFileSync(path.join(dir, '.env'), 'SLACK_TOKEN=xoxb-123456789012-1234567890123-' + 'b'.repeat(24) + '\n');
+  // secscan-ignore: slack-bot-token synthetic value assembled at runtime for the gitignore test
+  fs.writeFileSync(path.join(dir, '.env'), 'SLACK_TOKEN=xoxb-123456789012-1234567890123-' + rand(24) + '\n');
   const local = JSON.parse(secscan(['scan', '--only', 'gitleaks', '--format', 'json', '--quiet', '--fail-on', 'medium'], dir).stdout);
   const env = local.findings.find((f) => f.file === '.env');
   assert.ok(env, 'gitignored .env is still reported');
