@@ -2,7 +2,7 @@
 #
 #   jobs:
 #     security:
-#       uses: zapai-inc/secscan/.github/workflows/scan.yml@v0.2.2
+#       uses: zapai-inc/secscan/.github/workflows/scan.yml@v0.2.3
 #       permissions:
 #         contents: read
 #         pull-requests: write     # for the PR comment; drop it and set comment: false otherwise

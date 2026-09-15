@@ -96,6 +96,7 @@ export async function runScan(root, {
   const blocking = newFindings.filter((f) => meetsThreshold(f.severity, threshold)
     || (mode === 'hook' && config.hookFailOnSecrets && f.category === 'secrets'));
 
+  const crashed = toolRuns.filter((t) => t.ran && t.error && t.count === 0).map((t) => t.tool);
   const toolVersions = Object.fromEntries(toolRuns.filter((t) => t.ran).map((t) => [t.tool, t.version]));
   return {
     secscanVersion: SECSCAN_VERSION,
@@ -110,8 +111,9 @@ export async function runScan(root, {
     resolved: useBaseline ? resolvedSince(findings, baseline) : [],
     baseline: { exists: !!baseline.updatedAt, commit: baseline.commit, updatedAt: baseline.updatedAt, size: Object.keys(baseline.findings).length },
     deps,
+    crashed,
     config,
-    ok: blocking.length === 0,
+    ok: blocking.length === 0 && !(mode === 'ci' && config.failOnToolError !== false && crashed.length > 0),
   };
 }
 

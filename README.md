@@ -86,7 +86,7 @@ In config, with an expiry so accepted risk comes back for review:
 on: [push, pull_request]
 jobs:
   security:
-    uses: zapai-inc/secscan/.github/workflows/scan.yml@v0.2.2
+    uses: zapai-inc/secscan/.github/workflows/scan.yml@v0.2.3
     permissions:
       contents: read
       pull-requests: write
@@ -136,6 +136,10 @@ with its SHA-256. Register it in `src/adapters/index.js`.
 - npm audit and osv-scanner report the same advisories; rows are merged on advisory id and
   package, the osv row wins (exact version, correct fixed-in), and `extra.alsoReportedBy`
   records the other. Dev-only packages are marked from the lockfile.
+- A scanner that ran but crashed (error, zero findings) fails a CI run, so a broken tool never
+  passes as a clean one. `failOnToolError: false` in `.secscan.json` overrides it per repo while an
+  upstream bug is open. Known: Sighthound 1.0 panics on Linux in repos with a nested `.gitignore`
+  (`ignore` crate, "path is expected to be under the root"); Windows is unaffected.
 - No SARIF upload to GitHub Code Scanning by default: it needs Advanced Security on private
   repos. The SARIF file is produced anyway for anything that reads it.
 - The fixture in `fixtures/node-vuln` is synthetic and intentionally vulnerable; its secret

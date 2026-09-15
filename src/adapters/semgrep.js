@@ -59,7 +59,7 @@ export function parse(json, root) {
       file: relPosix(root, r.path),
       line: r.start?.line || null,
       endLine: r.end?.line || null,
-      snippet: r.extra?.lines || null,
+      snippet: r.extra?.lines && r.extra.lines !== 'requires login' ? r.extra.lines : null,
       cwe: cweText ? (String(cweText).match(/CWE-\d+/i) || [null])[0]?.toUpperCase() || null : null,
       extra: {
         confidence: r.extra?.metadata?.confidence || null,

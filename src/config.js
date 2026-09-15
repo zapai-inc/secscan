@@ -15,6 +15,9 @@ export const DEFAULTS = {
   failOn: { local: 'none', ci: 'high', hook: 'none' },
   // The commit hook always fails on a new secret, whatever failOn.hook says.
   hookFailOnSecrets: true,
+  // A scanner that ran but crashed (error and zero findings) fails the run in ci mode, so a
+  // broken tool never passes as a clean one. Set false per repo while an upstream bug is open.
+  failOnToolError: true,
   // Suppressions: [{ tool?, rule?, path?, reason, expires? (YYYY-MM-DD) }]
   suppress: [],
   semgrep: { configs: ['p/default'], extraArgs: [] },

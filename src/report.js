@@ -2,7 +2,8 @@ const SEV_ICON = { critical: '🟥', high: '🟧', medium: '🟨', low: '🟦', 
 
 export function toMarkdown(r, { maxPerSection = 60 } = {}) {
   const L = [];
-  const verdict = r.ok ? '✅ pass' : `❌ fail (${r.blocking.length} blocking, threshold ${r.threshold})`;
+  const crashedNote = r.crashed?.length ? `; ${r.crashed.join(', ')} crashed` : '';
+  const verdict = r.ok ? `✅ pass${crashedNote ? ' (with a crashed tool, see errors)' : ''}` : `❌ fail (${r.blocking.length} blocking, threshold ${r.threshold}${crashedNote})`;
   L.push(`## secscan ${r.secscanVersion} · ${r.mode} · ${verdict}`);
   L.push('');
   const ran = r.toolRuns.filter((t) => t.ran);
