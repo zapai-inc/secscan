@@ -86,7 +86,7 @@ In config, with an expiry so accepted risk comes back for review:
 on: [push, pull_request]
 jobs:
   security:
-    uses: zapai-inc/secscan/.github/workflows/scan.yml@v0.2.1
+    uses: zapai-inc/secscan/.github/workflows/scan.yml@v0.2.2
     permissions:
       contents: read
       pull-requests: write

@@ -6,7 +6,7 @@
       "name": "secscan",
       "source": "./plugin",
       "description": "SAST + secrets + supply-chain scan with a fingerprinted baseline, triaged by Claude against your repo's security invariants.",
-      "version": "0.2.1"
+      "version": "0.2.2"
     }
   ]
 }

@@ -22,7 +22,7 @@ export async function runScan(root, {
   const startedAt = Date.now();
   const config = loadConfig(root);
   // never report on secscan's own checkout or output inside a scanned workspace (CI), whatever the config says
-  config.exclude = [...new Set([...(config.exclude || []), '**/.secscan-tool/**', '**/secscan-out/**', '**/.git/**'])];
+  config.exclude = [...new Set([...(config.exclude || []), '**/.secscan-tool/**', '**/secscan-out/**', '**/.git/**', '**/node_modules/**', '**/.venv/**', '**/venv/**', '**/__pycache__/**'])];
   const detect = detectRepo(root);
   // excluded paths never feed the supply-chain adapters either (e.g. a vulnerable fixture lockfile)
   for (const k of Object.keys(detect.lockfiles)) {
