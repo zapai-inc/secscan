@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readJson, gitChangedFiles, nowIso, relPosix, matchesAny } from './util.js';
+import { readJson, gitChangedFiles, nowIso, relPosix, matchesAny, gitIgnored } from './util.js';
 import { loadConfig } from './config.js';
 import { detectRepo } from './detect.js';
 import { selectAdapters } from './adapters/index.js';
@@ -53,6 +53,7 @@ export async function runScan(root, {
   }
 
   findings = dedupeSupplyChain(applyExcludes(findings, config.exclude), root);
+  markGitignoredSecrets(findings, root, detect);
   if (changedFiles) {
     findings = findings.filter((f) => f.category === 'supply-chain' || (f.file && changedFiles.has(f.file)));
   }
@@ -110,6 +111,24 @@ export async function runScan(root, {
     config,
     ok: blocking.length === 0,
   };
+}
+
+/**
+ * gitleaks' directory mode does not honour .gitignore, so a developer's local .env shows up
+ * as if it were in the repo. Those stay visible (a laptop leak still matters) but drop to
+ * low, never block, and are labelled so the baseline does not fill with local files.
+ */
+function markGitignoredSecrets(findings, root, detect) {
+  if (!detect.hasGit) return;
+  const secrets = findings.filter((f) => f.category === 'secrets' && f.file && !f.extra?.commit);
+  if (!secrets.length) return;
+  const ignored = gitIgnored(root, [...new Set(secrets.map((f) => f.file))]);
+  for (const f of secrets) {
+    if (!ignored.has(f.file)) continue;
+    f.severity = 'low';
+    f.extra.gitignored = true;
+    f.message = `[gitignored, local file only] ${f.message}`;
+  }
 }
 
 function summarize(findings) {

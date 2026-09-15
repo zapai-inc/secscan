@@ -88,5 +88,16 @@ test('cli: init writes config + baseline in a temp git repo, then a rescan is cl
   const hookRun = secscan(['scan', '--hook', '--quiet'], dir);
   assert.equal(hookRun.status, 1, 'hook mode fails on a new secret');
   assert.match(hookRun.stdout, /gitleaks\//);
+  // a secret in a gitignored local file is reported as low, labelled, and never blocks
+  execFileSync('git', ['reset', '-q', 'leak.js'], { cwd: dir });
+  fs.rmSync(path.join(dir, 'leak.js'));
+  fs.writeFileSync(path.join(dir, '.gitignore'), '.env\n');
+  fs.writeFileSync(path.join(dir, '.env'), 'SLACK_TOKEN=xoxb-123456789012-1234567890123-' + 'b'.repeat(24) + '\n');
+  const local = JSON.parse(secscan(['scan', '--only', 'gitleaks', '--format', 'json', '--quiet', '--fail-on', 'medium'], dir).stdout);
+  const env = local.findings.find((f) => f.file === '.env');
+  assert.ok(env, 'gitignored .env is still reported');
+  assert.equal(env.severity, 'low');
+  assert.equal(env.extra.gitignored, true);
+  assert.equal(local.ok, true, 'gitignored secret does not block');
   fs.rmSync(dir, { recursive: true, force: true });
 });
