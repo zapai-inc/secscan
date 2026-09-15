@@ -1,6 +1,6 @@
 {
   "name": "@zapai/secscan",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Repo-agnostic security scan: SAST, secrets and supply-chain findings merged into SARIF with fingerprinted baselines, a Claude Code plugin, and a reusable GitHub Actions workflow.",
   "license": "MIT",
   "type": "module",

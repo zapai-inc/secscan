@@ -8,6 +8,7 @@ import * as semgrep from '../src/adapters/semgrep.js';
 import * as npmAudit from '../src/adapters/npm-audit.js';
 import * as osv from '../src/adapters/osv-scanner.js';
 import * as gitleaks from '../src/adapters/gitleaks.js';
+import * as pipAudit from '../src/adapters/pip-audit.js';
 import { finalize } from '../src/findings.js';
 import { dedupeSupplyChain } from '../src/supplychain.js';
 import { toSarif } from '../src/sarif.js';
@@ -106,4 +107,28 @@ test('sarif output has one run per tool, fingerprints and locations', () => {
   assert.ok(res.locations[0].physicalLocation.region.startLine > 0);
   const secret = sarif.runs.find((r) => r.tool.driver.name === 'gitleaks').results[0];
   assert.equal(secret.locations[0].physicalLocation.region.snippet, undefined);
+});
+
+test('pip-audit: one row per advisory, GHSA preferred as id, fix version carried', () => {
+  const out = pipAudit.parse(sample('pip-audit.json'), 'requirements.txt');
+  assert.ok(out.length >= 20);
+  const yaml = out.find((f) => f.extra.package === 'pyyaml');
+  assert.ok(yaml);
+  assert.equal(yaml.ruleId, 'pip-audit/GHSA-8q59-q68h-6hv4');
+  assert.equal(yaml.extra.fixedIn, '5.4');
+  assert.equal(yaml.file, 'requirements.txt');
+  assert.ok(yaml.extra.aliases.includes('PYSEC-2021-142'));
+  assert.equal(yaml.category, 'supply-chain');
+});
+
+test('supply-chain dedupe merges pip-audit into the osv row and borrows its title', () => {
+  const osvRows = [finalize({ tool: 'osv-scanner', category: 'supply-chain', ruleId: 'osv/PYSEC-2021-142', severity: 'critical', message: 'pyyaml@5.3.1 (PyPI): PYSEC-2021-142. Fixed in 5.4', file: 'requirements.txt', extra: { package: 'pyyaml', version: '5.3.1', aliases: ['CVE-2020-14343', 'GHSA-8q59-q68h-6hv4'], fixedIn: '5.4', title: null } })];
+  const pa = pipAudit.parse(sample('pip-audit.json'), 'requirements.txt').map(finalize).filter((f) => f.extra.package === 'pyyaml' && f.ruleId.endsWith('GHSA-8q59-q68h-6hv4'));
+  const merged = dedupeSupplyChain([...osvRows, ...pa], ROOT);
+  const rows = merged.filter((f) => f.extra.package === 'pyyaml');
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].tool, 'osv-scanner');
+  assert.equal(rows[0].severity, 'critical');
+  assert.deepEqual(rows[0].extra.alsoReportedBy, ['pip-audit']);
+  assert.match(rows[0].message, /PyYAML library/);
 });

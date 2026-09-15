@@ -11,7 +11,8 @@ you wrote down.
 | SAST | [Sighthound](https://github.com/Corgea/Sighthound) (tree-sitter, taint) | injection, SSRF, path traversal, XSS, eval |
 | SAST | [Semgrep CE](https://github.com/semgrep/semgrep) (CI, Linux) | the same classes with 2,000+ framework-aware rules |
 | Secrets | [gitleaks](https://github.com/gitleaks/gitleaks) | tokens and keys in the tree or the history |
-| Supply chain | `npm audit` + [osv-scanner](https://github.com/google/osv-scanner) | known advisories in lockfiles, deduped across both |
+| Supply chain | `npm audit` + [osv-scanner](https://github.com/google/osv-scanner) | known advisories in npm, Python (uv, poetry, Pipfile, PDM, requirements), Go, Cargo, Ruby, PHP lockfiles, deduped |
+| Supply chain | [pip-audit](https://github.com/pypa/pip-audit) (CI, or where pip works) | pinned `requirements*.txt` against the PyPI advisory DB, merged with the osv rows |
 | Supply chain | built-in lockfile diff | new packages with install scripts, unusual registry hosts, git URLs, fresh publishes |
 | Judgment | Claude Code plugin | confirms or dismisses each finding by reading code; checks `.secscan/invariants.md` |
 
@@ -35,7 +36,9 @@ npx --yes github:zapai-inc/secscan scan --ci        # fail on new high/critical,
 Scanner binaries land in `~/.secscan/bin`, or `SECSCAN_TOOLS_DIR` if set. `secscan tools status`
 shows what is installed; `secscan tools install` fetches osv-scanner and gitleaks. Sighthound
 needs a Rust build (`cargo install --git https://github.com/Corgea/Sighthound --tag 1.0 sighthound`)
-and Semgrep runs where pip works (Linux, macOS, WSL); both are optional locally and always on in CI.
+and Semgrep runs where pip works (Linux, macOS, WSL); pip-audit installs with `pip install pip-audit`
+anywhere. All three are optional locally and always on in CI. A `pyproject.toml` without a lockfile
+is reported as a gap: Python supply chain needs `uv.lock`, `poetry.lock` or pinned requirements.
 
 ## Where it runs
 
@@ -83,7 +86,7 @@ In config, with an expiry so accepted risk comes back for review:
 on: [push, pull_request]
 jobs:
   security:
-    uses: zapai-inc/secscan/.github/workflows/scan.yml@v0.1.1
+    uses: zapai-inc/secscan/.github/workflows/scan.yml@v0.2.0
     permissions:
       contents: read
       pull-requests: write
@@ -109,7 +112,7 @@ Set `SECSCAN_HOME` to a local checkout to run from source instead of `npx`.
 ## Commands
 
 ```
-secscan scan [path] [--ci|--hook] [--changed[=ref]] [--only a,b] [--fail-on sev] [--no-baseline] [--format text|md|json|sarif] [--out dir]
+secscan scan [path] [--ci|--hook] [--changed[=ref]] [--only a,b]   # adapters: sighthound semgrep npm-audit osv-scanner pip-audit gitleaks [--fail-on sev] [--no-baseline] [--format text|md|json|sarif] [--out dir]
 secscan init [path] [--hook]
 secscan baseline update|show
 secscan deps [--since ref]

@@ -2,7 +2,7 @@
 #
 #   jobs:
 #     security:
-#       uses: zapai-inc/secscan/.github/workflows/scan.yml@v0.1.1
+#       uses: zapai-inc/secscan/.github/workflows/scan.yml@v0.2.0
 #       permissions:
 #         contents: read
 #         pull-requests: write     # for the PR comment; drop it and set comment: false otherwise
@@ -30,6 +30,10 @@ on:
         default: ''
       semgrep:
         description: install and run Semgrep CE
+        type: boolean
+        default: true
+      pip-audit:
+        description: install and run pip-audit for pinned requirements files
         type: boolean
         default: true
       sighthound:
@@ -70,6 +74,12 @@ jobs:
         run: |
           pip install --quiet "$(node -p "require('./.secscan-tool/tools.json').semgrep.pip")"
           semgrep --version
+
+      - name: pip-audit
+        if: inputs.pip-audit
+        run: |
+          pip install --quiet "$(node -p "require('./.secscan-tool/tools.json')['pip-audit'].pip")"
+          pip-audit --version
 
       - name: cache sighthound
         if: inputs.sighthound

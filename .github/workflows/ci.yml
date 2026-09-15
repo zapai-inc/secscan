@@ -43,8 +43,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: semgrep
-        run: pip install --quiet "$(node -p "require('./tools.json').semgrep.pip")"
+      - name: semgrep + pip-audit
+        run: pip install --quiet "$(node -p "require('./tools.json').semgrep.pip")" "$(node -p "require('./tools.json')['pip-audit'].pip")"
       - name: cache sighthound
         id: sh-cache
         uses: actions/cache@v4
@@ -68,6 +68,15 @@ jobs:
             if (!j.findings.some(f => f.tool === 'semgrep')) { console.error('semgrep produced nothing'); process.exit(1); }
             if (!j.findings.some(f => f.extra && f.extra.package === 'minimist')) { console.error('minimist advisory missing'); process.exit(1); }
             console.log('fixture ok:', j.findings.length, 'findings from', Object.keys(j.toolVersions).join(', '));
+          "
+          node bin/secscan.js scan fixtures/python-vuln --no-baseline --format json --quiet > py.json || true
+          node -e "
+            const j = require('./py.json');
+            if (!j.toolRuns.some(t => t.tool === 'pip-audit' && t.ran && t.count > 0)) { console.error('pip-audit did not run or found nothing'); process.exit(1); }
+            const yaml = j.findings.find(f => f.extra && f.extra.package === 'pyyaml');
+            if (!yaml || !yaml.extra.alsoReportedBy) { console.error('pyyaml advisory not merged across osv + pip-audit'); process.exit(1); }
+            if (!j.findings.some(f => f.ruleId === 'sighthound/command-injection' && f.file === 'app.py')) { console.error('sighthound missed the python command injection'); process.exit(1); }
+            console.log('python fixture ok:', j.findings.length, 'findings from', Object.keys(j.toolVersions).join(', '));
           "
       - name: report artifact
         run: node bin/secscan.js scan fixtures/node-vuln --no-baseline --out out --quiet || true

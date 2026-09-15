@@ -15,7 +15,7 @@ export function dedupeSupplyChain(findings, root) {
   for (const f of findings) {
     if (f.category !== 'supply-chain') { out.push(f); continue; }
     const adv = advisoryId(f);
-    const key = adv ? `${f.file}|${f.extra?.package}|${adv}` : null;
+    const key = adv ? `${f.file}|${String(f.extra?.package || '').toLowerCase()}|${adv}` : null;
     if (!key) { out.push(f); continue; }
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(f);
@@ -26,9 +26,21 @@ export function dedupeSupplyChain(findings, root) {
     const keep = list[0];
     const others = list.slice(1);
     if (others.length) {
-      keep.extra.alsoReportedBy = others.map((o) => o.tool);
+      const otherTools = [...new Set(others.map((o) => o.tool).filter((t) => t !== keep.tool))];
+      if (otherTools.length) keep.extra.alsoReportedBy = otherTools;
+      // the same tool can emit one advisory under several ids (PYSEC + GHSA); keep the ids as aliases
+      const ids = new Set([...(keep.extra.aliases || [])]);
+      for (const o of others) { ids.add(o.ruleId.split('/').pop()); for (const a of o.extra?.aliases || []) ids.add(a); }
+      ids.delete(keep.ruleId.split('/').pop());
+      keep.extra.aliases = [...ids];
       // carry npm audit's fix hint if osv had none
       for (const o of others) {
+        // osv sometimes has no summary for PYSEC ids; borrow the other tool's title
+        if (!keep.extra.title && o.extra?.title) {
+          keep.extra.title = o.extra.title;
+          const bareId = keep.ruleId.split('/').pop();
+          keep.message = keep.message.replace(`: ${bareId}.`, `: ${o.extra.title}.`).replace(`: ${bareId}`, `: ${o.extra.title}`);
+        }
         if (!keep.extra.fixedIn && o.extra?.fixAvailable) keep.extra.fixAvailable = o.extra.fixAvailable;
         if (keep.extra.direct === undefined && o.extra?.direct !== undefined) keep.extra.direct = o.extra.direct;
       }

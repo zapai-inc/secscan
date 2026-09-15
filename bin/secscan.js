@@ -29,7 +29,7 @@ Scan options:
   --ci                 CI mode: thresholds from failOn.ci (default high), gitleaks history, registry metadata
   --hook               pre-commit mode: staged files only, fast tools, fails on a new secret
   --changed[=<ref>]    restrict SAST/secrets findings to staged files (no ref) or files changed since <ref>
-  --only a,b           run only these adapters (sighthound, semgrep, npm-audit, osv-scanner, gitleaks)
+  --only a,b           run only these adapters (sighthound, semgrep, npm-audit, osv-scanner, pip-audit, gitleaks)
   --fail-on <sev>      override threshold: critical|high|medium|low|info|none
   --no-baseline        report everything as new
   --format md|text|json|sarif   stdout format (default: text locally, md in --ci)

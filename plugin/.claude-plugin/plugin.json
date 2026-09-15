@@ -1,6 +1,6 @@
 {
   "name": "secscan",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "SAST + secrets + supply-chain scan with a fingerprinted baseline, triaged by Claude against your repo's security invariants.",
   "author": { "name": "zapai-inc" },
   "repository": "https://github.com/zapai-inc/secscan",

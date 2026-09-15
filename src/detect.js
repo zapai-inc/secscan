@@ -19,7 +19,8 @@ const SOURCE_EXT = {
  */
 export function detectRepo(root) {
   const languages = new Map();
-  const lockfiles = { npm: [], pnpm: [], yarn: [], python: [], go: [], cargo: [], gemfile: [], composer: [] };
+  const lockfiles = { npm: [], pnpm: [], yarn: [], python: [], pythonRequirements: [], go: [], cargo: [], gemfile: [], composer: [] };
+  const manifests = { pyproject: [] };
   let fileCount = 0;
 
   for (const file of walk(root)) {
@@ -32,7 +33,9 @@ export function detectRepo(root) {
     if (base === 'package-lock.json' || base === 'npm-shrinkwrap.json') lockfiles.npm.push(file);
     else if (base === 'pnpm-lock.yaml') lockfiles.pnpm.push(file);
     else if (base === 'yarn.lock') lockfiles.yarn.push(file);
-    else if (base === 'requirements.txt' || base === 'poetry.lock' || base === 'Pipfile.lock' || base === 'uv.lock') lockfiles.python.push(file);
+    else if (/^requirements[\w.-]*\.txt$/.test(base)) { lockfiles.python.push(file); lockfiles.pythonRequirements.push(file); }
+    else if (base === 'poetry.lock' || base === 'Pipfile.lock' || base === 'uv.lock' || base === 'pdm.lock') lockfiles.python.push(file);
+    else if (base === 'pyproject.toml') manifests.pyproject.push(file);
     else if (base === 'go.mod') lockfiles.go.push(file);
     else if (base === 'Cargo.lock') lockfiles.cargo.push(file);
     else if (base === 'Gemfile.lock') lockfiles.gemfile.push(file);
@@ -43,6 +46,7 @@ export function detectRepo(root) {
   return {
     languages,
     lockfiles,
+    manifests,
     anyLockfile,
     hasGit: exists(path.join(root, '.git')),
     fileCount,
@@ -51,6 +55,7 @@ export function detectRepo(root) {
 
 export function summarizeDetection(d) {
   const langs = [...d.languages.entries()].sort((a, b) => b[1] - a[1]).map(([l, n]) => `${l} (${n})`).join(', ') || 'none';
-  const locks = Object.entries(d.lockfiles).filter(([, v]) => v.length).map(([k, v]) => `${k} x${v.length}`).join(', ') || 'none';
-  return `languages: ${langs}; lockfiles: ${locks}; files: ${d.fileCount}`;
+  const locks = Object.entries(d.lockfiles).filter(([k, v]) => v.length && k !== 'pythonRequirements').map(([k, v]) => `${k} x${v.length}`).join(', ') || 'none';
+  const gaps = d.manifests?.pyproject?.length && !d.lockfiles.python.length ? '; pyproject.toml without a lockfile (python supply chain not covered: add uv.lock, poetry.lock or a pinned requirements.txt)' : '';
+  return `languages: ${langs}; lockfiles: ${locks}; files: ${d.fileCount}${gaps}`;
 }

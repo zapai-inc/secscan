@@ -16,6 +16,7 @@ import { finalize } from '../src/findings.js';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const BIN = path.join(HERE, '..', 'bin', 'secscan.js');
 const FIXTURE = path.join(HERE, '..', 'fixtures', 'node-vuln');
+const PY_FIXTURE = path.join(HERE, '..', 'fixtures', 'python-vuln');
 
 function secscan(args, cwd) {
   const r = spawnSync(process.execPath, [BIN, ...args], { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
@@ -105,4 +106,18 @@ test('cli: init writes config + baseline in a temp git repo, then a rescan is cl
   assert.equal(env.extra.gitignored, true);
   assert.equal(local.ok, true, 'gitignored secret does not block');
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('cli: python fixture is detected and scanned', () => {
+  const d = secscan(['detect', PY_FIXTURE], PY_FIXTURE);
+  assert.equal(d.status, 0);
+  assert.match(d.stdout, /python \(1\)/);
+  assert.match(d.stdout, /python x1/);
+  if (!resolveTool('osv-scanner').path) return;
+  const r = secscan(['scan', PY_FIXTURE, '--no-baseline', '--format', 'json', '--quiet', '--only', 'osv-scanner,pip-audit,sighthound'], PY_FIXTURE);
+  const j = JSON.parse(r.stdout);
+  const yaml = j.findings.find((f) => f.category === 'supply-chain' && f.extra.package === 'pyyaml');
+  assert.ok(yaml, 'pyyaml advisory found from requirements.txt');
+  assert.equal(yaml.file, 'requirements.txt');
+  if (resolveTool('sighthound').path) assert.ok(j.findings.some((f) => f.ruleId === 'sighthound/command-injection' && f.file === 'app.py'));
 });

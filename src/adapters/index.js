@@ -3,8 +3,9 @@ import * as semgrep from './semgrep.js';
 import * as npmAudit from './npm-audit.js';
 import * as osv from './osv-scanner.js';
 import * as gitleaks from './gitleaks.js';
+import * as pipAudit from './pip-audit.js';
 
-export const ADAPTERS = [sighthound, semgrep, npmAudit, osv, gitleaks];
+export const ADAPTERS = [sighthound, semgrep, npmAudit, osv, pipAudit, gitleaks];
 
 /**
  * Decide which adapters run. Returns [{ adapter, enabled, bin, version, reason }].

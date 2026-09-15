@@ -9,7 +9,7 @@ export const INVARIANTS_FILE = path.join(STATE_DIR, 'invariants.md');
 export const DEFAULTS = {
   version: 1,
   // "auto" enables an adapter when the repo looks like it applies; true/false forces it.
-  adapters: { sighthound: 'auto', semgrep: 'auto', 'npm-audit': 'auto', 'osv-scanner': 'auto', gitleaks: 'auto' },
+  adapters: { sighthound: 'auto', semgrep: 'auto', 'npm-audit': 'auto', 'osv-scanner': 'auto', 'pip-audit': 'auto', gitleaks: 'auto' },
   exclude: ['**/node_modules/**', '**/dist/**', '**/build/**', '**/coverage/**', '**/*.min.js', '**/vendor/**'],
   // Minimum severity of a NEW finding that fails the run, per mode.
   failOn: { local: 'none', ci: 'high', hook: 'none' },
