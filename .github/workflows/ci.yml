@@ -1,0 +1,77 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: syntax
+        shell: bash
+        run: |
+          for f in bin/secscan.js src/*.js src/adapters/*.js; do node --check "$f"; done
+      - name: install pinned scanners (osv-scanner, gitleaks)
+        shell: bash
+        run: node bin/secscan.js tools install
+      - name: unit + e2e tests (sighthound/semgrep absent here; those adapters are covered by samples)
+        shell: bash
+        run: node --test tests/*.test.js
+
+  fixture-scan:
+    name: fixture scan with every tool (linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: semgrep
+        run: pip install --quiet "$(node -p "require('./tools.json').semgrep.pip")"
+      - name: cache sighthound
+        id: sh-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/sighthound
+          key: sighthound-${{ hashFiles('tools.json') }}-${{ runner.os }}
+      - name: build sighthound
+        if: steps.sh-cache.outputs.cache-hit != 'true'
+        run: |
+          cargo install --locked --git https://github.com/Corgea/Sighthound --tag "$(node -p "require('./tools.json').sighthound.version")" sighthound \
+            || cargo install --git https://github.com/Corgea/Sighthound --tag "$(node -p "require('./tools.json').sighthound.version")" sighthound
+      - name: pinned binaries
+        run: node bin/secscan.js tools install && node bin/secscan.js tools status
+      - name: scan fixture, expect the known findings
+        run: |
+          node bin/secscan.js scan fixtures/node-vuln --no-baseline --format json --quiet > out.json || true
+          node -e "
+            const j = require('./out.json');
+            const need = ['sighthound/command-injection', 'gitleaks/github-pat'];
+            for (const n of need) if (!j.findings.some(f => f.ruleId === n)) { console.error('missing ' + n); process.exit(1); }
+            if (!j.findings.some(f => f.tool === 'semgrep')) { console.error('semgrep produced nothing'); process.exit(1); }
+            if (!j.findings.some(f => f.extra && f.extra.package === 'minimist')) { console.error('minimist advisory missing'); process.exit(1); }
+            console.log('fixture ok:', j.findings.length, 'findings from', Object.keys(j.toolVersions).join(', '));
+          "
+      - name: report artifact
+        run: node bin/secscan.js scan fixtures/node-vuln --no-baseline --out out --quiet || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fixture-report
+          path: out/
