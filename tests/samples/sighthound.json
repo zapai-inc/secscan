@@ -1,6 +1,6 @@
 [
   {
-    "file": ".\\app.js",
+    "file": "app.js",
     "line": 43,
     "column": 19,
     "end_line": 43,
@@ -31,7 +31,7 @@
     ]
   },
   {
-    "file": ".\\app.js",
+    "file": "app.js",
     "line": 24,
     "column": 19,
     "end_line": 24,
@@ -61,7 +61,7 @@
     ]
   },
   {
-    "file": ".\\app.js",
+    "file": "app.js",
     "line": 14,
     "column": 3,
     "end_line": 14,
@@ -92,7 +92,7 @@
     ]
   },
   {
-    "file": ".\\app.js",
+    "file": "app.js",
     "line": 35,
     "column": 1,
     "end_line": 39,
@@ -118,7 +118,7 @@
     ]
   },
   {
-    "file": ".\\app.js",
+    "file": "app.js",
     "line": 37,
     "column": 50,
     "end_line": 37,
@@ -144,7 +144,7 @@
     ]
   },
   {
-    "file": ".\\app.js",
+    "file": "app.js",
     "line": 42,
     "column": 0,
     "end_line": 42,

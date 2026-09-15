@@ -2,7 +2,7 @@
   "results": [
     {
       "source": {
-        "path": "C:/Users/phani/secscan/fixtures/node-vuln/package-lock.json",
+        "path": "package-lock.json",
         "type": "lockfile"
       },
       "packages": [
